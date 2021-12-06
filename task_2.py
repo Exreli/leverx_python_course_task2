@@ -1,9 +1,83 @@
+"""
+Module provides Version class affording
+semantic compare.
+"""
+
+
+import re
+from collections import OrderedDict
+from functools import total_ordering
+
+
+@total_ordering
 class Version:
-    def __init__(self, version):
-        pass
+    """
+    Class for working with Version data (its semantic compare).
+    """
+    def __init__(self, version: str):
+        """
+        Creates a new instance of Version class.
+        """
+        self.version = version
+        self.comparable_version = Version.convert_version(version)
+
+    @staticmethod
+    def convert_version(version: str) -> list:
+        """
+        Converts string representation of version number
+        to its comparable form.
+        """
+        replacements = OrderedDict(
+            {'alpha': 'a', 'beta': 'b', 'a': '.a', 'b': '.b', r'[\-\+]': '.'}
+        )
+        for key, value in replacements.items():
+            version = re.sub(key, value, version)
+        version = re.split(r'\.+', version)
+        while len(version) < 3:
+            version.append('0')
+        version = list(map(lambda x: int(x) if x.isdigit() else x, version))
+        return version
+
+    @staticmethod
+    def is_version(other):
+        """
+        Raises ValueError if given instance doesn't belong to Version class.
+        """
+        if not isinstance(other, Version):
+            raise TypeError('Instance of Version class expected')
+
+    def __eq__(self, other) -> bool:
+        """
+        Check if current version is equal to other.
+        :type other: Version
+        """
+        Version.is_version(other)
+        return self.comparable_version == other.comparable_version
+
+    def __lt__(self, other) -> bool:
+        """
+        Check if current version is less than other.
+        :type other: Version
+        """
+        Version.is_version(other)
+        for i, (x, y) in enumerate(zip(self.comparable_version, other.comparable_version)):
+            try:
+                if x == y:
+                    continue
+                return x < y
+            except TypeError:
+                if i <= 3:
+                    return isinstance(x, str)
+                return isinstance(x, int)
+        if 3 in (len(self.comparable_version), len(other.comparable_version)):
+            return len(self.comparable_version) > 3
+        return len(self.comparable_version) < len(other.comparable_version)
 
 
 def main():
+    """
+    Tests of Version's semantic compare.
+    """
     to_test = [
         ("1.0.0", "2.0.0"),
         ("1.0.0", "1.42.0"),
