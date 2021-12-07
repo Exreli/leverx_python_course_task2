@@ -9,11 +9,32 @@ from collections import OrderedDict
 from functools import total_ordering
 
 
+class VersionChecker:
+    def __get__(self, instance, owner=None):
+        return getattr(instance, self.name)
+
+    def __set__(self, instance, value):
+        if re.fullmatch(r'(\d+\.){,2}\d+(-?(\d+|a|b|alpha|beta|rc|sr)[.-]?)*(\+(\w+[.-]?)+)?', value) and \
+                value != '0.0.0':
+            setattr(instance, self.name, value)
+        else:
+            raise ValueError("""
+                        Incorrect version number. 
+                        Common pattern is X.Y.Z-'pre-release version'+'metadata'. 
+                        At least X expected.
+                        """)
+
+    def __set_name__(self, owner, name):
+        self.name = f'_{name}'
+
+
 @total_ordering
 class Version:
     """
     Class for working with Version data (its semantic compare).
     """
+    version = VersionChecker()
+
     def __init__(self, version: str):
         """
         Creates a new instance of Version class.
@@ -35,7 +56,7 @@ class Version:
         version = re.split(r'\.+', version)
         while len(version) < 3:
             version.append('0')
-        version = list(map(lambda x: int(x) if x.isdigit() else x, version))
+        version = list(map(lambda x: int(x) if x.isdigit() else x.lower(), version))
         return version
 
     @staticmethod
@@ -95,7 +116,7 @@ def main():
         ("1.0.0-beta.2", "1.0.0-beta.11"),
         ("1.0.0-beta.11", "1.0.0-rc.1"),
         ("1.10", "1.10.1"),
-        ("6.42b", "6.42")
+        ("6.42b", "6.42"),
     ]
 
     for version_1, version_2 in to_test:
