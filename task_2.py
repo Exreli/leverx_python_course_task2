@@ -10,12 +10,15 @@ from functools import total_ordering
 
 
 class VersionChecker:
-    def __get__(self, instance, owner=None):
+    """
+    Descriptor for Version class, checks if version number is valid.
+    """
+    def __get__(self, instance: object, owner=None):
         return getattr(instance, self.name)
 
-    def __set__(self, instance, value):
-        if re.fullmatch(r'(\d+\.){,2}\d+(-?(\d+|a|b|alpha|beta|rc|sr)[.-]?)*(\+(\w+[.-]?)+)?', value) and \
-                value != '0.0.0':
+    def __set__(self, instance: object, value: str):
+        if re.fullmatch(r'(\d+\.){,2}\d+(-?(\d+|a|b|alpha|beta|rc)[.-]?)*(\+(\w+[.-]?)+)?', value)\
+                and value not in ('0.0.0', '0.0', '0'):
             setattr(instance, self.name, value)
         else:
             raise ValueError("""
@@ -40,10 +43,8 @@ class Version:
         Creates a new instance of Version class.
         """
         self.version = version
-        self.comparable_version = Version.convert_version(version)
 
-    @staticmethod
-    def convert_version(version: str) -> list:
+    def comparable_version(self) -> list:
         """
         Converts string representation of version number
         to its comparable form.
@@ -51,48 +52,50 @@ class Version:
         replacements = OrderedDict(
             {'alpha': 'a', 'beta': 'b', 'a': '.a', 'b': '.b', r'\-': '.', r'\+.+': ''}
         )
+        comparable_version = self.version
         for key, value in replacements.items():
-            version = re.sub(key, value, version)
-        version = re.split(r'\.+', version)
-        while len(version) < 3:
-            version.append('0')
-        version = list(map(lambda x: int(x) if x.isdigit() else x.lower(), version))
-        return version
+            comparable_version = re.sub(key, value, comparable_version)
+        comparable_version = re.split(r'\.+', comparable_version)
+        while len(comparable_version) < 3:
+            comparable_version.append('0')
+        comparable_version = list(
+            map(lambda x: int(x) if x.isdigit() else x.lower(), comparable_version)
+        )
+        return comparable_version
 
     @staticmethod
-    def is_version(other):
+    def is_version(other: object):
         """
         Raises ValueError if given instance doesn't belong to Version class.
         """
         if not isinstance(other, Version):
             raise TypeError('Instance of Version class expected')
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: 'Version') -> bool:
         """
         Check if current version is equal to other.
-        :type other: Version
         """
         Version.is_version(other)
-        return self.comparable_version == other.comparable_version
+        version_1, version_2 = self.comparable_version(), other.comparable_version()
+        return version_1 == version_2
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: 'Version') -> bool:
         """
         Check if current version is less than other.
-        :type other: Version
         """
         Version.is_version(other)
-        for i, (x, y) in enumerate(zip(self.comparable_version, other.comparable_version)):
+        version_1, version_2 = self.comparable_version(), other.comparable_version()
+        for i, (x, y) in enumerate(zip(version_1, version_2)):
             try:
-                if x == y:
-                    continue
-                return x < y
+                if x != y:
+                    return x < y
             except TypeError:
                 if i <= 3:
                     return isinstance(x, str)
                 return isinstance(x, int)
-        if 3 in (len(self.comparable_version), len(other.comparable_version)):
-            return len(self.comparable_version) > 3
-        return len(self.comparable_version) < len(other.comparable_version)
+        if 3 in (len(version_1), len(version_2)):
+            return len(version_1) > 3
+        return len(version_1) < len(version_2)
 
 
 def main():
