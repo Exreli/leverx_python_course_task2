@@ -12,6 +12,7 @@ from functools import total_ordering
 class VersionChecker:
     """
     Descriptor for Version class, checks if version number is valid.
+    More details on https://semver.org/
     """
     def __get__(self, instance: object, owner=None):
         return getattr(instance, self.name)
@@ -50,7 +51,7 @@ class Version:
         to its comparable form.
         """
         replacements = OrderedDict(
-            {'alpha': 'a', 'beta': 'b', 'a': '.a', 'b': '.b', r'\-': '.', r'\+.+': ''}
+            {'alpha': 'a', 'beta': 'b', 'a': '.a', 'b': '.b', '-': '.', r'\+.+': ''}
         )
         comparable_version = self.version
         for key, value in replacements.items():
@@ -109,17 +110,6 @@ def main():
         ("1.1.0-alpha", "1.2.0-alpha.1"),
         ("1.0.1b", "1.0.10-alpha.beta"),
         ("1.0.0-rc.1", "1.0.0"),
-        ("1.0.0-alpha+001", "1.0.0-beta+exp.sha.5114f85"),
-        ("1.0.0-alpha+001", "1.0.0+20130313144700"),
-        ("1.0.0-beta+exp.sha.5114f85", "1.0.0+20130313144700"),
-        ("1.0.0-alpha", "1.0.0-alpha.1"),
-        ("1.0.0-alpha.1", "1.0.0-alpha.beta"),
-        ("1.0.0-alpha.beta", "1.0.0-beta"),
-        ("1.0.0-beta", "1.0.0-beta.2"),
-        ("1.0.0-beta.2", "1.0.0-beta.11"),
-        ("1.0.0-beta.11", "1.0.0-rc.1"),
-        ("1.10", "1.10.1"),
-        ("6.42b", "6.42"),
     ]
 
     for version_1, version_2 in to_test:
