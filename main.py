@@ -5,7 +5,8 @@ semantic compare.
 
 
 from functools import total_ordering
-from utils import VersionDescriptor, is_valid, create_comparable_version, MIN_VERSION_LENGTH
+from itertools import zip_longest
+from utils import VersionDescriptor
 
 
 @total_ordering
@@ -30,38 +31,34 @@ class Version:
         """
         if isinstance(obj, Version):
             return obj.comparable_version
-        if isinstance(obj, str) and is_valid(obj):
-            return create_comparable_version(obj)
-        raise TypeError(
-            """
-            Got non-comparable object. 
-            An instance of Version class or string with version number expected.
-            """
-        )
+        if isinstance(obj, str) and VersionDescriptor.is_valid(obj):
+            return VersionDescriptor.create_comparable_version(obj)
+        return NotImplemented
 
     def __eq__(self, other: object) -> bool:
         """
         Checks if current version is equal to other.
         """
         version_to_compare = Version.get_comparable_version(other)
-        return self.comparable_version == version_to_compare
+        for x, y in zip_longest(self.comparable_version, version_to_compare, fillvalue=0):
+            try:
+                if x != y:
+                    return False
+            except TypeError:
+                return False
+        return True
 
     def __lt__(self, other: object) -> bool:
         """
         Checks if current version is less than other.
         """
         version_to_compare = Version.get_comparable_version(other)
-        for i, (x, y) in enumerate(zip(self.comparable_version, version_to_compare)):
+        for x, y in zip_longest(self.comparable_version, version_to_compare, fillvalue=0):
             try:
                 if x != y:
                     return x < y
             except TypeError:
-                if i <= MIN_VERSION_LENGTH:
-                    return isinstance(x, str)
-                return isinstance(x, int)
-        if MIN_VERSION_LENGTH in (len(self.comparable_version), len(version_to_compare)):
-            return len(self.comparable_version) > MIN_VERSION_LENGTH
-        return len(self.comparable_version) < len(version_to_compare)
+                return isinstance(x, str)
 
 
 def main():
